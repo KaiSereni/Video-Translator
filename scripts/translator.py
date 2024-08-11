@@ -7,6 +7,8 @@ import numpy as np
 from transformers import pipeline
 from googletrans import Translator
 from pydub import AudioSegment
+from pydub.silence import detect_nonsilent
+
 
 # Set the device to GPU if available, otherwise use CPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -75,6 +77,32 @@ def translate_text(text: str, target_language_code: str) -> str:
     translation = translator.translate(text, dest=target_language_code)
     return translation.text
 
+def cap_audio_length(audio_path: str, max_duration_sec: int = 6) -> str:
+    """
+    Caps the duration of an audio file to a maximum duration by trimming or padding.
+
+    Args:
+        audio_path (str): Path to the input audio file.
+        max_duration_sec (int): Maximum duration in seconds.
+
+    Returns:
+        str: Path to the capped audio file.
+    """
+    audio = AudioSegment.from_wav(audio_path)
+    max_duration_ms = max_duration_sec * 1000  # Convert to milliseconds
+    
+    if len(audio) > max_duration_ms:
+        # Trim the audio to the max duration
+        capped_audio = audio[:max_duration_ms]
+    else:
+        # Pad the audio with silence to reach the max duration
+        silence_padding = AudioSegment.silent(duration=max_duration_ms - len(audio))
+        capped_audio = audio + silence_padding
+    
+    capped_audio_path = "capped_speaker.wav"
+    capped_audio.export(capped_audio_path, format="wav")
+    return capped_audio_path
+
 def text_to_speech(text: str, language: str, tts: TTS, speaker_wav: str) -> str:
     """
     Converts text to speech and saves it to a WAV file.
@@ -88,8 +116,15 @@ def text_to_speech(text: str, language: str, tts: TTS, speaker_wav: str) -> str:
     Returns:
         str: The path to the generated WAV file.
     """
+    # Cap the speaker_wav to a maximum of 6 seconds
+    capped_speaker_wav = cap_audio_length(speaker_wav, max_duration_sec=6)
+    
     wav_path = "temp.wav"
-    tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=wav_path)
+    tts.tts_to_file(text=text, speaker_wav=capped_speaker_wav, language=language, file_path=wav_path)
+    
+    # Remove the temporary capped speaker wav file
+    os.remove(capped_speaker_wav)
+    
     return wav_path
 
 def create_translated_audio(wav_path: str, target_language: str) -> str:
