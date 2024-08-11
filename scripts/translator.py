@@ -1,4 +1,5 @@
 import json
+import os
 from TTS.api import TTS
 import torch
 import torchaudio
@@ -6,12 +7,15 @@ import numpy as np
 from transformers import pipeline
 from googletrans import Translator
 from pydub import AudioSegment
-import os
 
+# Set the device to GPU if available, otherwise use CPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+# Specify the model names for Text-to-Speech (TTS) and Speech-to-Text (STT)
 TTS_MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
 STT_MODEL_NAME = "openai/whisper-tiny"
 
+# Initialize the STT pipeline and TTS model
 stt_pipe = pipeline(
     task="automatic-speech-recognition",
     model=STT_MODEL_NAME,
@@ -19,77 +23,126 @@ stt_pipe = pipeline(
     device=device,
 )
 tts_model = TTS(model_name=TTS_MODEL_NAME, progress_bar=True).to(device)
+
+# Initialize the Google Translate API
 translator = Translator()
 
+def speech_to_text(wav_path: str) -> list:
+    """
+    Converts speech from a WAV file to text using a speech-to-text model.
 
-def speech_to_text(wav_path):
-    # Load audio using torchaudio for better handling
+    Args:
+        wav_path (str): Path to the input WAV file.
+
+    Returns:
+        list: A list of dictionaries containing the start and end timestamps 
+              and the corresponding transcribed text for each chunk.
+    """
+    # Load the waveform and sample rate from the WAV file
     waveform, sample_rate = torchaudio.load(wav_path)
+
+    # Resample the audio to 16kHz if needed (common sample rate for STT models)
     if sample_rate != 16000:
         waveform = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=16000)(waveform)
-        sample_rate = 16000
+    
+    # Flatten the waveform tensor to 1D
     waveform = waveform.squeeze(0)
     
-    # Process audio
+    # Get the transcriptions with timestamps
     out = stt_pipe(waveform.numpy(), return_timestamps=True)
 
-    chunks: list[dict] = out["chunks"]
-    reformatted_chunks = []
-    for chunk in chunks:
-        start, end = chunk["timestamp"]
-        text = chunk["text"]
-        reformatted_chunks.append({"start": start, "end": end, "text": text})
+    # Reformat the chunks for easier processing later
+    reformatted_chunks = [
+        {"start": chunk["timestamp"][0], "end": chunk["timestamp"][1], "text": chunk["text"]}
+        for chunk in out["chunks"]
+    ]
 
     return reformatted_chunks
 
-def translate_text(text, target_language_code):
-    if text == None or len(text.strip()) == 0:
+def translate_text(text: str, target_language_code: str) -> str:
+    """
+    Translates text into a target language using Google Translate API.
+
+    Args:
+        text (str): The input text to translate.
+        target_language_code (str): The language code for the target language.
+
+    Returns:
+        str: The translated text.
+    """
+    if not text.strip():
         return ''
     translation = translator.translate(text, dest=target_language_code)
     return translation.text
 
-def text_to_speech(text, lan:str, tts:TTS, speaker_wav):
+def text_to_speech(text: str, language: str, tts: TTS, speaker_wav: str) -> str:
+    """
+    Converts text to speech and saves it to a WAV file.
+
+    Args:
+        text (str): The input text to convert.
+        language (str): The language code for the speech synthesis.
+        tts (TTS): The TTS model instance.
+        speaker_wav (str): Path to the speaker's WAV file.
+
+    Returns:
+        str: The path to the generated WAV file.
+    """
     wav_path = "temp.wav"
-    tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=lan, file_path=wav_path)
-    
+    tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=wav_path)
     return wav_path
 
-def create_translated_audio(wav_path, target_language):
-    # Step 1: Get the speech chunks (with timestamps) from the original audio
+def create_translated_audio(wav_path: str, target_language: str) -> str:
+    """
+    Creates a translated version of the input audio by transcribing, translating, 
+    and then synthesizing the speech back into the target language.
+
+    Args:
+        wav_path (str): Path to the input WAV file.
+        target_language (str): The target language code for translation.
+
+    Returns:
+        str: The path to the final translated audio WAV file.
+    """
+    # Get the transcribed chunks from the original audio
     chunks = speech_to_text(wav_path)
     
-    # Step 2: Initialize an empty audio segment to combine results
+    # Create an empty audio segment to store the final audio
     combined_audio = AudioSegment.silent(duration=0)
     
-    # Step 3: Process each chunk
+    # Process each transcribed chunk
     for chunk in chunks:
-        start_time = chunk['start'] * 1000  # Convert to milliseconds
-        end_time = chunk['end'] * 1000  # Convert to milliseconds
+        start_time = chunk['start'] * 1000  # Convert seconds to milliseconds
+        end_time = chunk['end'] * 1000
         text = chunk['text']
         
-        # Step 4: Translate the text
+        # Translate the text into the target language
         translated_text = translate_text(text, target_language)
         
-        # Step 5: Generate speech for the translated text
-        speaker_wav = wav_path  # Using the original speaker's voice as a reference
+        # Generate speech from the translated text
+        speaker_wav = wav_path
         translated_wav_path = text_to_speech(translated_text, target_language, tts_model, speaker_wav)
         
-        # Step 6: Load the generated speech
+        # Load the translated audio segment
         translated_audio_segment = AudioSegment.from_wav(translated_wav_path)
         
-        # Step 7: Adjust the length of the translated speech to match the original segment
+        # Match the duration of the translated segment with the original
         original_duration = end_time - start_time
-        translated_audio_segment = translated_audio_segment.set_frame_rate(int(original_duration / len(translated_audio_segment) * translated_audio_segment.frame_rate))
+        translated_audio_segment = translated_audio_segment.set_frame_rate(
+            int(original_duration / len(translated_audio_segment) * translated_audio_segment.frame_rate)
+        )
         
-        # Step 8: Add the translated audio segment to the combined audio
-        combined_audio += AudioSegment.silent(duration=start_time - len(combined_audio))  # Add silence until the current segment's start
-        combined_audio += translated_audio_segment[:original_duration]  # Add the translated segment, trimmed to the original length
+        # Add silence before the current translated segment if necessary
+        combined_audio += AudioSegment.silent(duration=start_time - len(combined_audio))
+        
+        # Append the translated segment, trimming to match the original duration
+        combined_audio += translated_audio_segment[:original_duration]
     
-    # Step 9: Save the combined audio
+    # Export the combined translated audio to a file
     output_path = "translated_audio.wav"
     combined_audio.export(output_path, format="wav")
 
-    # Delete temp files
+    # Clean up the temporary file
     os.remove('temp.wav')
     
     return output_path
