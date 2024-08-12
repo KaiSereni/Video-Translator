@@ -27,5 +27,6 @@ MrBeast and other YouTubers make a ton of money translating their videos into ot
 ## Future Goals
 * Audio chunk time remapping
 * Better text-to-speech model
+* Better translation software (Currently using Google Translate which converts tokens to vectors and then straight to text of another language, but a full GPT might be better)
 
 **This repo was created by Pohakoo, LLC. See more projects at [forgotai.com](www.forgotai.com).**
