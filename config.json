@@ -1,4 +1,4 @@
 {
-    "STT_MODEL_NAME": "openai/whisper-tiny",
+    "STT_MODEL_NAME": "openai/whisper-large-v3",
     "TTS_MODEL_NAME": "tts_models/multilingual/multi-dataset/xtts_v2"
 }

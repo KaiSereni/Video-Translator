@@ -14,14 +14,14 @@ MrBeast and other YouTubers make a ton of money translating their videos into ot
 6. Type `pip install -r requirements.txt` to install the required packages. This will take around 3 minutes.
 7. In your file explorer, copy the video you want to translate into the `src` folder, which should be at `C:\Users\(user)\Documents\translator\Video-Translator\src` (I added a demo video, which can be deleted). Rename this file to `input.mp4`. IMPORTANT: Make sure the video has no music or sound effects, only speech. You can add the music and sound in post. The video must also be in mp4 format.
 8. In your file explorer, open the `output_language.txt` file, which should be at  `C:\Users\(user)\Documents\translator\Video-Translator\output_language.txt`. This is where you specify the language you want to translate **into**. Type the two-letter language code and nothing else. For example: type `en` for english, `es` for spanish, `fr` for french, or `de` for german. [Here](https://www.w3schools.com/tags/ref_language_codes.asp#:~:text=ISO%20639)'s a full list of language codes. Save the text file and close your text editor.
-9. Finally, to translate the video, go back to the PowerShell window and type `python main.py`. This could take between 1 and 30 minutes depending on the length of the video. The final product will be in the `Video-Translator` folder.
+9. Finally, to translate the video, go back to the PowerShell window and type `python main.py`. This could take between 1 and 30 minutes depending on the length of the video and whether you've use the script before. The final product will be in the `Video-Translator` folder.
 ## Quickstart for programmers
 1. Clone the repo and open it in a shell.
 2. Create a virtual environment in that folder with `python -m venv venv`
 3. Install the requirements with `pip install -r requirements.txt`
 4. Open the `output_language.txt` file and type the two-letter output language code, and nothing else. For example: type `en` for english, `es` for spanish, `fr` for french, or `de` for german. [Here](https://www.w3schools.com/tags/ref_language_codes.asp#:~:text=ISO%20639)'s a full list of language codes.
 5. copy the video you want to translate into the `Video-Translator/src` folder. Rename this file to `input.mp4`. IMPORTANT: Make sure the video has no music or sound effects, only speech. You can add the music and sound in post. The video must also be in mp4 format.
-6. Run `python main.py` to translate the video. This can take between 1 and 30 minutes depending on the video length.
+6. Run `python main.py` to translate the video. This can take between 1 and 30 minutes depending on the video length and whether you've used the script before (if models have already downloaded).
 <br>**Note:** This repo should work out-of-the-box, as there's a demo video in the src directory. You can just run `main.py` to test the repo. Also, if you have Cuda installed, this works faster with Cuda.
 
 ## Future Goals
