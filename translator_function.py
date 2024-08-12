@@ -6,16 +6,19 @@ import torchaudio
 import numpy as np
 from transformers import pipeline
 from googletrans import Translator
-from pydub import AudioSegment
-from pydub.silence import detect_nonsilent
-
+from pydub import AudioSegment, effects
 
 # Set the device to GPU if available, otherwise use CPU
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Specify the model names for Text-to-Speech (TTS) and Speech-to-Text (STT)
-TTS_MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
-STT_MODEL_NAME = "openai/whisper-tiny"
+#STT_MODEL_NAME = "openai/whisper-tiny"
+#STT_MODEL_NAME = "openai/whisper-large-v3"
+#TTS_MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
+with open('config.json') as f:
+    config = json.load(f)
+    STT_MODEL_NAME = config["STT_MODEL_NAME"]
+    TTS_MODEL_NAME = config["TTS_MODEL_NAME"]
 
 # Initialize the STT pipeline and TTS model
 stt_pipe = pipeline(
@@ -46,6 +49,9 @@ def speech_to_text(wav_path: str) -> list:
     # Resample the audio to 16kHz if needed (common sample rate for STT models)
     if sample_rate != 16000:
         waveform = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=16000)(waveform)
+        
+    # Flatten the waveform to ([160000])
+    waveform = waveform.mean(dim=0, keepdim=True)
     
     # Flatten the waveform tensor to 1D
     waveform = waveform.squeeze(0)
@@ -127,6 +133,29 @@ def text_to_speech(text: str, language: str, tts: TTS, speaker_wav: str) -> str:
     
     return wav_path
 
+def match_duration_and_remove_silence(audio_segment: AudioSegment, target_duration_ms: int) -> AudioSegment:
+    """
+    Matches the duration of an audio segment to the target duration and removes silence.
+
+    Args:
+        audio_segment (AudioSegment): The audio segment to process.
+        target_duration_ms (int): The target duration in milliseconds.
+
+    Returns:
+        AudioSegment: The processed audio segment with matched duration and no silence.
+    """
+    # Remove silence from the audio
+    non_silent_audio = effects.strip_silence(audio_segment, silence_len=100, silence_thresh=-50)
+    
+    # Match the duration by speeding up or slowing down the audio
+    speed_factor = len(non_silent_audio) / target_duration_ms
+    if speed_factor > 1:
+        non_silent_audio = non_silent_audio.speedup(playback_speed=speed_factor)
+    else:
+        non_silent_audio = non_silent_audio.set_frame_rate(int(non_silent_audio.frame_rate * speed_factor))
+    
+    return non_silent_audio
+
 def create_translated_audio(wav_path: str, target_language: str) -> str:
     """
     Creates a translated version of the input audio by transcribing, translating, 
@@ -161,11 +190,9 @@ def create_translated_audio(wav_path: str, target_language: str) -> str:
         # Load the translated audio segment
         translated_audio_segment = AudioSegment.from_wav(translated_wav_path)
         
-        # Match the duration of the translated segment with the original
+        # Match the duration of the translated segment with the original and remove silence
         original_duration = end_time - start_time
-        translated_audio_segment = translated_audio_segment.set_frame_rate(
-            int(original_duration / len(translated_audio_segment) * translated_audio_segment.frame_rate)
-        )
+        translated_audio_segment = match_duration_and_remove_silence(translated_audio_segment, original_duration)
         
         # Add silence before the current translated segment if necessary
         combined_audio += AudioSegment.silent(duration=start_time - len(combined_audio))
@@ -181,7 +208,3 @@ def create_translated_audio(wav_path: str, target_language: str) -> str:
     os.remove('temp.wav')
     
     return output_path
-
-# Example usage
-translated_audio_path = create_translated_audio("../private/test_clip.wav", "fr")
-print(f"Translated audio saved to: {translated_audio_path}")

@@ -1,0 +1,4 @@
+{
+    "STT_MODEL_NAME": "openai/whisper-tiny",
+    "TTS_MODEL_NAME": "tts_models/multilingual/multi-dataset/xtts_v2"
+}

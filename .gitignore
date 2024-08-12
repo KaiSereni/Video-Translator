@@ -1,3 +1,6 @@
 /venv
 /private
 **/*.wav
+*.pyc
+**/__pycache__
+output.mp4
