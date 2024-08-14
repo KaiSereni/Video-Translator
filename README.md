@@ -4,7 +4,7 @@ MrBeast and other YouTubers make a ton of money translating their videos into ot
 ## Requirements
 * This script was tested with [Python 3.10.11](https://www.python.org/downloads/windows/#:~:text=Python%203.10.11). It might also work with other Python versions, I haven't bothered to check. Make sure you've [added this version to your PATH variable](https://www.youtube.com/watch?v=iNoQeRj52zo) if it didn't happen automatically. To check if Python is in your PATH variable, open Windows PowerShell and type `python -V`. It should return `Python 3.10.11`.
 * Install [FFMPEG](https://www.ffmpeg.org/download.html) for video processing.
-* I use the [GitHub CLI](https://cli.github.com) to clone the repository, which I reccomment. You can also accomplish the same thing by going to code > download zip on the GitHub website and extract it into the folder you create in step 2.
+* I use the [GitHub CLI](https://cli.github.com) to clone the repository, which I reccommend. You can also accomplish the same thing by going to code > download zip on the GitHub website and extract it into the folder you create in step 2.
 ## How to use FOR BEGINNERS: Windows
 1. Create a folder to use the project in. I'll create a folder in my Documents folder called `translator`
 2. Open Windows PowerShell and type `cd C:\Users\(user)\Documents\translator` to open the project folder. Replace the path with the path of your created folder.
@@ -16,7 +16,7 @@ MrBeast and other YouTubers make a ton of money translating their videos into ot
 8. In your file explorer, open the `output_language.txt` file, which should be at  `C:\Users\(user)\Documents\translator\Video-Translator\output_language.txt`. This is where you specify the language you want to translate **into**. Type the two-letter language code and nothing else. For example: type `en` for english, `es` for spanish, `fr` for french, or `de` for german. [Here](https://www.w3schools.com/tags/ref_language_codes.asp#:~:text=ISO%20639)'s a full list of language codes. Save the text file and close your text editor.
 9. Finally, to translate the video, go back to the PowerShell window and type `python main.py`. This could take between 1 and 30 minutes depending on the length of the video and whether you've use the script before. The final product will be in the `Video-Translator` folder.
 ## Quickstart for programmers
-1. Clone the repo and open it in a shell.
+1. Clone the repo and open it in a command prompt.
 2. Create a virtual environment in that folder with `python -m venv venv`
 3. Install the requirements with `pip install -r requirements.txt`
 4. Open the `output_language.txt` file and type the two-letter output language code, and nothing else. For example: type `en` for english, `es` for spanish, `fr` for french, or `de` for german. [Here](https://www.w3schools.com/tags/ref_language_codes.asp#:~:text=ISO%20639)'s a full list of language codes.
@@ -29,4 +29,4 @@ MrBeast and other YouTubers make a ton of money translating their videos into ot
 * Better text-to-speech model
 * Better translation software (Currently using Google Translate which converts tokens to vectors and then straight to text of another language, but a full GPT might be better)
 
-**This repo was created by Pohakoo, LLC. See more projects at [forgotai.com](www.forgotai.com).**
+**This repo was created by Pohakoo, LLC. See more projects at [forgotai.com](https://forgotai.com).**
